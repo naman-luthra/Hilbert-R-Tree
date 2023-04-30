@@ -1,6 +1,10 @@
 #include <stdlib.h>
 #include "hilbert_r_tree.h"
 
+int calculateHilbertValue(int x, int y){
+    return INT_MAX;
+}
+
 node* createNewNode(){
     node* n = (node*)malloc(sizeof(node));
     n->type = LEAFNODE;
