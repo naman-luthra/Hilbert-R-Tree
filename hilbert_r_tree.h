@@ -6,4 +6,6 @@ void insertToHRT(hilbertRTree * hrt, spatialData *sd);
 
 hilbertRTree* createHilbertRTree();
 
-void preorderHilbert(HRTNode* root);
+void preorderHilbert(hilbertRTree* tree);
+
+long long int preorderHRTNode(HRTNode* root);

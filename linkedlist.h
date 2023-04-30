@@ -11,5 +11,6 @@ typedef struct LinkedList {
 } LinkedList;
 
 LinkedList * createLinkedList();
+void freeLinkedList(LinkedList * list);
 void llInsert(LinkedList * list, void * data);
 void llDelete(LinkedList * ll, LLNode * node);

@@ -5,7 +5,7 @@
 #define INT_MAX 2147483647
 #define INT_MIN -2147483648
 #define BUFFERSIZE 1024
-#define GRIDSIZE 1024
+#define GRIDSIZE 1048576
 
 #define max(a, b) ((a>b?a:b))
 #define min(a, b) ((a<b?a:b))
@@ -18,7 +18,7 @@ typedef struct rectangle{
 typedef struct spatialData{
     void * data;
     rect r;
-    int hilbertValue;
+    long long int hilbertValue;
 } spatialData;
 
 typedef struct HRTNode{
@@ -26,7 +26,7 @@ typedef struct HRTNode{
     int count;
     rect maxBoundingRect;
     struct HRTNode* parent;
-    int maxHilbertValue;
+    long long int maxHilbertValue;
     union
     {
         spatialData * datapoints[ORDER];

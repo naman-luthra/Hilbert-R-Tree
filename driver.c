@@ -6,7 +6,7 @@
 #include "hilbert_r_tree.c"
 
 int main(){
-    FILE* fp = fopen("test.txt", "r");
+    FILE* fp = fopen("bigtest.txt", "r");
     hilbertRTree* hrt = createHilbertRTree();
     char buffer[1024];
     while(fgets(buffer, BUFFERSIZE, fp)!=NULL){
@@ -37,5 +37,5 @@ int main(){
         }
     }
     printf("Preorder traversal of the tree:\n");
-    preorderHilbert(hrt->root);
+    preorderHilbert(hrt);
 }

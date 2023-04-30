@@ -41,3 +41,13 @@ void llDelete(LinkedList * ll, LLNode * node){
     }
     ll->count--;
 }
+
+void freeLinkedList(LinkedList * list){
+    LLNode * temp = list->head;
+    while(temp!=NULL){
+        LLNode * temp2 = temp->next;
+        free(temp);
+        temp = temp2;
+    }
+    free(list);
+}
