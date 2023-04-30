@@ -75,40 +75,36 @@ bool rectangleIntersects(rect target, rect r)
     return true;
 }
 
-void searchHRTNode(HRTNode * node, rect queryRect){
-    if (!rectangleIntersects(node->maxBoundingRect, queryRect))
+void recursiveHRTSearch(HRTNode * node, rect queryRect, LinkedList * result){
+    if(!rectangleIntersects(node->maxBoundingRect, queryRect))
         return;
 
-    if (node->type == LEAFNODE)
-    {
-        for (int i = 0; i < node->count; i++)
-        {
-            if (rectangleIntersects(node->datapoints[i]->r, queryRect))
-            {
-                printf("Present in rectangle with minimum DIMENSIONSs (%f, %f) and maximum DIMENSIONSs (%f, %f)\n", 
-                    node->datapoints[i]->r.minDim[0], 
-                    node->datapoints[i]->r.minDim[1], 
-                    node->datapoints[i]->r.maxDim[0], 
-                    node->datapoints[i]->r.maxDim[1]
-                );
-            }
-        }
+    if(node->type == LEAFNODE){
+        for(int i = 0; i < node->count; i++)
+            if(rectangleIntersects(node->datapoints[i]->r, queryRect))
+                llInsert(result, node->datapoints[i]);
     }
-    else
-    {
-        for (int i = 0; i < node->count; i++)
-        {
-            if (rectangleIntersects(node->children[i]->maxBoundingRect, queryRect))
-            {
-                searchHRTNode(node->children[i], queryRect);
-            }
-        }
+    else{
+        for(int i = 0; i < node->count; i++)
+            if(rectangleIntersects(node->children[i]->maxBoundingRect, queryRect))
+                recursiveHRTSearch(node->children[i], queryRect, result);
     }
 }
 
-void searchHRT(hilbertRTree *hrt, rect queryRect)
-{
-    return searchHRTNode(hrt->root, queryRect);
+
+LinkedList * searchHRT(hilbertRTree *hrt, rect queryRect){
+    LinkedList * result = createLinkedList();
+    recursiveHRTSearch(hrt->root, queryRect, result);
+    printf("Found %d results\n\n", result->count);
+
+    LLNode * current = result->head;
+    while(current != NULL){
+        spatialData * sd = current->data;
+        printf("Found [(%f,%f),(%f,%f)]\n", sd->r.minDim[0], sd->r.minDim[1], sd->r.maxDim[0], sd->r.maxDim[1]);
+        current = current->next;
+    }
+
+    return result;
 }
 
 HRTNode *chooseLeaf(hilbertRTree *hrt, int h)

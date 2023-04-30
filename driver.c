@@ -38,4 +38,30 @@ int main(){
     }
     printf("Preorder traversal of the tree:\n");
     preorderHilbert(hrt);
+
+    int choice = 1;
+    while(choice!=0){
+        printf("Choose from given options\n\n");
+        printf("- To make a query, enter 1\n");
+        printf("- To exit, enter 0\n\n");
+        scanf("%d", &choice);
+        printf("\n");
+        switch (choice){
+            case 1:
+                printf("Enter the query rectangle in the format: x1 y1 x2 y2: ");
+                double x1, y1, x2, y2;
+                scanf("%lf %lf %lf %lf", &x1, &y1, &x2, &y2);
+                rect queryRect;
+                queryRect.maxDim[0] = max(x1, x2);
+                queryRect.maxDim[1] = max(y1, y2);
+                queryRect.minDim[0] = min(x1, x2);
+                queryRect.minDim[1] = min(y1, y2);
+                printf("\n");
+                searchHRT(hrt, queryRect);
+                break;
+            case 0:
+                break;
+        }
+    }
+    return 0;
 }
