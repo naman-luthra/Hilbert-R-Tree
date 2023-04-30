@@ -193,7 +193,8 @@ LinkedList * handleOverflow(HRTNode* n, void * new){
         bool inserted = false;
         while(curr!=NULL){
             HRTNode * temp = curr->data;
-            for(int i = 0; i < temp->count; i++){
+            int ct = temp->count;
+            for(int i = 0; i < ct; i++){
                 if(!inserted && temp->datapoints[i]->hilbertValue > newSD->hilbertValue){
                     llInsert(Childrenll, newSD);
                     inserted = true;
@@ -210,7 +211,8 @@ LinkedList * handleOverflow(HRTNode* n, void * new){
         bool inserted = false;
         while(curr!=NULL){
             HRTNode * temp = curr->data;
-            for(int i = 0; i < temp->count; i++){
+            int ct = temp->count;
+            for(int i = 0; i < ct; i++){
                 if(!inserted && temp->children[i]->maxHilbertValue > newNode->maxHilbertValue){
                     llInsert(Childrenll, newNode);
                     inserted = true;
@@ -277,7 +279,7 @@ void updateMBRandHV(HRTNode * p){
     }
 }
 
-void adjustTree(LinkedList * affectedNodes)
+void adjustTree(hilbertRTree * hrt, LinkedList * affectedNodes)
 {
     if(affectedNodes->count==0)
         return;
@@ -286,7 +288,7 @@ void adjustTree(LinkedList * affectedNodes)
     if(lastNode->count==-1){
         lastNode->count=0;
         if(firstNode->parent->count==ORDER)
-            adjustTree(handleOverflow(firstNode->parent, lastNode));
+            adjustTree(hrt, handleOverflow(firstNode->parent, lastNode));
         else{
             insertToHRTnode(firstNode->parent, lastNode);
         }
@@ -299,23 +301,26 @@ void adjustTree(LinkedList * affectedNodes)
             updateMBRandHV(temp->parent);
             llInsert(affectedParents, temp->parent);
         }
+        else{
+            hrt->root = temp;
+        }
         curr = curr->next;
     }
-    adjustTree(affectedParents);
+    adjustTree(hrt, affectedParents);
 }
 
 void insertToHRT(hilbertRTree * hrt, spatialData *sd){
-    printf("Inserting (%f, %f) with hilbert value %d\n", sd->r.minDim[0], sd->r.minDim[1], sd->hilbertValue);
     HRTNode * l = chooseLeaf(hrt, sd->hilbertValue);
     LinkedList * affectedNodes;
-    if (l->count == ORDER)
+    if (l->count == ORDER){
         affectedNodes = handleOverflow(l, sd);
+    }
     else{
         insertToHRTnode(l, sd);
         affectedNodes = createLinkedList();
         llInsert(affectedNodes, l);
     }
-    adjustTree(affectedNodes);
+    adjustTree(hrt, affectedNodes);
 }
 
 void preorderHilbert(HRTNode *root)
