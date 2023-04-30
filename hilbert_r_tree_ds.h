@@ -20,19 +20,19 @@ typedef struct spatialData{
     int hilbertValue;
 } spatialData;
 
-typedef struct node{
+typedef struct HRTNode{
     int type;
     int count;
     rect maxBoundingRect;
-    struct node* parent;
+    struct HRTNode* parent;
     int maxHilbertValue;
     union
     {
         spatialData * datapoints[ORDER];
-        struct node * children[ORDER];
+        struct HRTNode * children[ORDER];
     };
-} node;
+} HRTNode;
 
 typedef struct hilbertRTree{
-    node* root;
+    HRTNode * root;
 } hilbertRTree;
