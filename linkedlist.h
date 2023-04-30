@@ -12,4 +12,4 @@ typedef struct LinkedList {
 
 LinkedList * createLinkedList();
 void llInsert(LinkedList * list, void * data);
-void llDelete(LinkedList * ll, Node * node);
+void llDelete(LinkedList * ll, LLNode * node);

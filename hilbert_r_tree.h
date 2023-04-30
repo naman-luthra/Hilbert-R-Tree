@@ -3,7 +3,7 @@
 
 void search(hilbertRTree* hrt, rect queryRect);
 
-void insert(node* root, spatialData * sd);
+void insert(hilbertRTree * hrt, spatialData *sd);
 
 hilbertRTree* createHilbertRTree();
 
