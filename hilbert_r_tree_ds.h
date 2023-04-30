@@ -5,6 +5,7 @@
 #define INT_MAX 2147483647
 #define INT_MIN -2147483648
 #define BUFFERSIZE 1024
+#define GRIDSIZE 1024
 
 #define max(a, b) ((a>b?a:b))
 #define min(a, b) ((a<b?a:b))

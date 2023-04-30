@@ -1,33 +1,29 @@
 #include "hilbert_r_tree.h"
 
-int rotate(int n, int *x, int *y, int rx, int ry)
-{
-    if (ry == 0)
-    {
-        if (rx == 1)
-        {
-            *x = n - 1 - *x;
-            *y = n - 1 - *y;
+void rot(int n, int *x, int *y, int rx, int ry) {
+    if (ry == 0) {
+        if (rx == 1) {
+            *x = n-1 - *x;
+            *y = n-1 - *y;
         }
-        int t = *x;
+        int t  = *x;
         *x = *y;
         *y = t;
     }
-    return 0;
 }
 
 int calculateHilbertValue(rect r){
     int x = (r.minDim[0] + r.maxDim[0])/2;
     int y = (r.minDim[1] + r.maxDim[1])/2;
     int hilbertValue = 0;
-    int s = 0;
-    for(int s = 1; s < 32; s *= 2){
-        int rx = (x & s) > 0;
-        int ry = (y & s) > 0;
-        hilbertValue += s * s * ((3 * rx) ^ ry);
-        rotate(s, &x, &y, rx, ry);
+    int rx, ry, s, d=0;
+    for (s=GRIDSIZE/2; s>0; s/=2) {
+        rx = (x & s) > 0;
+        ry = (y & s) > 0;
+        d += s * s * ((3 * rx) ^ ry);
+        rot(GRIDSIZE, &x, &y, rx, ry);
     }
-    return hilbertValue;
+    return d;
 }
 
 HRTNode * createNewNode(int type)
