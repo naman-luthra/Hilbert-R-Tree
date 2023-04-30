@@ -29,4 +29,5 @@ int main(){
             symRead = strtok(NULL, "\n");
         }
     }
+    preorderHilbert(hrt->root);
 }

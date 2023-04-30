@@ -6,3 +6,5 @@ void search(hilbertRTree* hrt, rect queryRect);
 void insert(node* root, spatialData * sd);
 
 hilbertRTree* createHilbertRTree();
+
+void preorderHilbert(node* root);
