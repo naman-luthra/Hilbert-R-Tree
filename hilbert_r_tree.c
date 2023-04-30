@@ -1,4 +1,5 @@
 #include <stdlib.h>
+#include "linkedlist.h"
 #include "hilbert_r_tree.h"
 
 node* createNewNode(){
@@ -82,8 +83,110 @@ node* chooseLeaf(hilbertRTree* hrt, int h){
     return N;
 }
 
-void handleOverflow(node* leaf, spatialData * sd){
+void insertToHRTnode(node* n, void * new){
+    if(n->type==LEAFNODE){
+        spatialData * newSD = new;
+        n->datapoints[n->count] = newSD;
+        n->count++;
+        for(int i = 0; i < DIMENSIONS; i++){
+            if(newSD->r.minDim[i]<n->maxBoundingRect.minDim[i])
+                n->maxBoundingRect.minDim[i] = newSD->r.minDim[i];
+            if(newSD->r.maxDim[i]>n->maxBoundingRect.maxDim[i])
+                n->maxBoundingRect.maxDim[i] = newSD->r.maxDim[i];
+        }
+        if(newSD->hilbertValue>n->maxHilbertValue)
+            n->maxHilbertValue = newSD->hilbertValue;
+    }
+    else{
+        node * newNode = new;
+        n->children[n->count] = newNode;
+        n->count++;
+        for(int i = 0; i < DIMENSIONS; i++){
+            if(newNode->maxBoundingRect.minDim[i]<n->maxBoundingRect.minDim[i])
+                n->maxBoundingRect.minDim[i] = newNode->maxBoundingRect.minDim[i];
+            if(newNode->maxBoundingRect.maxDim[i]>n->maxBoundingRect.maxDim[i])
+                n->maxBoundingRect.maxDim[i] = newNode->maxBoundingRect.maxDim[i];
+        }
+        if(newNode->maxHilbertValue>n->maxHilbertValue)
+            n->maxHilbertValue = newNode->maxHilbertValue;
+    }
+}
 
+node * handleOverflow(node* n, void * new){
+    bool allFull = true;
+    node* createdNode = NULL;
+    LinkedList * Nodell = createLinkedList();
+    for(int i = 0; i < n->parent->count; i++){
+        llInsert(Nodell, n->parent->children[i]);
+        if(n->parent->children[i]->count!=ORDER){
+            allFull = false;
+            break;
+        }
+    }
+    if(allFull){
+        node* newNode = createNewNode();
+        newNode->parent = n->parent;
+        newNode->type = n->type;
+        llInsert(Nodell,newNode);
+        createdNode = newNode;
+    }
+
+    LinkedList * Childrenll = createLinkedList();
+    LLNode * curr = Nodell->head;
+    if(n->type==LEAFNODE){
+        spatialData * newSD = new;
+        bool inserted = false;
+        while(curr!=NULL){
+            node * temp = curr->data;
+            for(int i = 0; i < temp->count; i++){
+                if(!inserted && temp->datapoints[i]->hilbertValue > newSD->hilbertValue){
+                    llInsert(Childrenll, newSD);
+                    inserted = true;
+                }
+                llInsert(Childrenll, temp->datapoints[i]);
+                temp->datapoints[i] = NULL;
+            }
+            curr = curr->next;
+        }
+    }
+    else{
+        node * newNode = new;
+        bool inserted = false;
+        while(curr!=NULL){
+            node * temp = curr->data;
+            for(int i = 0; i < temp->count; i++){
+                if(!inserted && temp->children[i]->maxHilbertValue > newNode->maxHilbertValue){
+                    llInsert(Childrenll, newNode);
+                    inserted = true;
+                }
+                llInsert(Childrenll, temp->children[i]);
+                temp->children[i] = NULL;
+            }
+            curr = curr->next;
+        }
+    }
+
+    int childrenPerNode = Childrenll->count/Nodell->count;
+
+    LLNode * currNode = Nodell->head;
+    LLNode * currChild = Childrenll->head;
+
+    while(currNode!=NULL){
+        node * temp = currNode->data;
+        for(int i = 0; i < childrenPerNode; i++){
+            insertToHRTnode(temp, currChild->data);
+            currChild = currChild->next;
+        }
+        if(currNode->next==NULL){
+            while(currChild!=NULL){
+                insertToHRTnode(temp, currChild->data);
+                currChild = currChild->next;
+            }
+        }
+        currNode = currNode->next;
+    }
+
+    return createdNode;
 }
 
 void adjustTree(node* n){
