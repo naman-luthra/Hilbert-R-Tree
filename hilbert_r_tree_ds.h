@@ -3,6 +3,7 @@
 #define LEAFNODE 0
 #define NONLEAFNODE 1
 #define INT_MAX 2147483647
+#define BUFFERSIZE 1024
 
 #define max(a, b) ((a>b?a:b))
 #define min(a, b) ((a<b?a:b))

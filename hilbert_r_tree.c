@@ -99,6 +99,15 @@ void insert(node* root, spatialData * sd){
     if(l->count==ORDER)
         handleOverflow(l, sd);
     else{
-
+        int index = 0;
+        for(; index < root->count; index++){
+            if(root->maxHilbertValue>sd->hilbertValue){
+                break;
+            }
+        }
+        for(int i = root->count-1; i >= index; i++){
+            root->datapoints[i+1] = root->datapoints[i];
+        }
+        root->datapoints[index] = sd;
     }
 }
