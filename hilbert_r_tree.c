@@ -9,15 +9,17 @@ node* createNewNode(){
     n->right = NULL;
     n->parent = NULL;
     n->maxHilbertValue = 0;
-    for(int i = 0; i < DIMENSION; i++){
-        (n->r).maxDim[i] = 0;
-        (n->r).minDim[i] = 0;
+    for(int i = 0; i < DIMENSIONS; i++){
+        (n->maxBoundingRect).maxDim[i] = 0;
+        (n->maxBoundingRect).minDim[i] = 0;
     }
     return n;
 }
 
-node* initTree(){
-    return createNewNode();
+hilbertRTree* createHilbertRTree(){
+    hilbertRTree * hrt = (hilbertRTree*) malloc(sizeof(hilbertRTree));
+    hrt->root = createNewNode();
+    return hrt;
 }
 
 void freeNode(node* n){
@@ -32,116 +34,56 @@ void freeNode(node* n){
     }
 }
 
-bool rectangleIntersects(rect target, rect other){
-    for(int i = 0; i < DIMENSION; i++){
-        if(target.minDim[i]>other.maxDim[i] || target.maxDim[i]<other.minDim[i]){
+bool rectangleIntersects(rect target, rect r){
+    for(int i = 0; i < DIMENSIONS; i++){
+        if(target.minDim[i]>r.maxDim[i] || target.maxDim[i]<r.minDim[i]){
             return false;
         }
     }
     return true;
 }
 
-bool rectangleIntersectsHilbert(rect target, rect other){
-    return target.hilbertVal>=other.hilbertVal;
-}
+void search(hilbertRTree* hrt, rect queryRect){
+    if(!rectangleIntersects(hrt->root->maxBoundingRect, queryRect))
+        return;
 
-void search(node* root, rect other){
-    if(!rectangleIntersects(root->r, other)){
-        return false;
-    }
-    if(root->type==LEAFNODE){
-        for(int i = 0; i < root->count; i++){
-            if(rectangleIntersects(root->datapoints[i], other)){
-                printf("Present in rectangle with minimum dimensions (%d, %d) and maximum dimensions (%d, %d)\n", root->datapoints[i].minDim[0], root->datapoints[i].minDim[1], root->datapoints[i].maxDim[0], root->datapoints[i].maxDim[1]);
+    if(hrt->root->type==LEAFNODE){
+        for(int i = 0; i < hrt->root->count; i++){
+            if(rectangleIntersects(hrt->root->datapoints[i]->r, queryRect)){
+                printf("Present in rectangle with minimum DIMENSIONSs (%d, %d) and maximum DIMENSIONSs (%d, %d)\n"
+                ,hrt->root->datapoints[i]->r.minDim[0]
+                ,hrt->root->datapoints[i]->r.minDim[1]
+                ,hrt->root->datapoints[i]->r.maxDim[0]
+                ,hrt->root->datapoints[i]->r.maxDim[1]);
             }
         }
     }
     else{
-        for(int i = 0; i < root->count; i++){
-            if(rectangleIntersects(root->children[i]->r, other)){
-                search(root->children[i], other);
+        for(int i = 0; i < hrt->root->count; i++){
+            if(rectangleIntersects(hrt->root->children[i]->maxBoundingRect, queryRect)){
+                search(hrt->root->children[i], queryRect);
             }
         }
     }
 }
 
-node* chooseLeaf(node* root, int h){
-    if(root->type==LEAFNODE){
-        root->r.hilbertVal = max(root->r.hilbertVal, h);
-        return root;
-    }
-    int minHilbertVal = INT_MAX;
-    node* selChild = NULL;
-    for(int i = 0; i < root->count; i++){
-        if(root->children[i]->r.hilbertVal>h){
-            if(minHilbertVal==INT_MAX){
-                selChild = root->children[i];
-            }
-            else{
-                if(minHilbertVal>root->children[i]->r.hilbertVal){
-                    selChild = root->children[i];
-                    minHilbertVal = root->children[i]->r.hilbertVal;
-                }
+node* chooseLeaf(hilbertRTree* hrt, int h){
+    node * N = hrt->root;
+
+    while(N->type!=LEAFNODE){
+        for(int i = 0; i < N->count; i++){
+            if(N->children[i]->maxHilbertValue>h || i==N->count-1){
+                N = N->children[i];
+                break;
             }
         }
     }
-    if(selChild==NULL){
-        chooseLeaf(root->children[(root->count)-1], h);
-    }
-    else{
-        chooseLeaf(selChild, h);
-    }
+        
+    return N;
 }
 
-// void manageHilbert(node* n){
-//     if(n==NULL){
-//         return;
-//     }
-//     int hilVal = n->r.hilbertVal;
-//     for(int i = 0; i < n->count; i++){
-//         hilVal = min(hilVal, n->children[i]->r.hilbertVal);
-//     }
-//     if(n->r.hilbertVal!=hilVal){
-//         n->r.hilbertVal = hilVal;
-//         manageHilbert(n->parent);
-//     }
-// }
+void handleOverflow(node* leaf, spatialData * sd){
 
-void handleOverflow(node* leaf, rect other){
-    node* leftSibling = leaf->left;
-    node* rightSibling = leaf->right;
-    bool leftEmpty = false, rightEmpty = false;
-    rect minRect, maxRect;
-    minRect = (leaf->datapoints)[0];
-    maxRect = (leaf->datapoints)[0];
-    for(int i = 0; i < leaf->count; i++){
-        if(minRect.hilbertVal>leaf->children[i]){
-            minRect = leaf->children[i]->r;
-        }
-        if(maxRect.hilbertVal < leaf->children[i]->r.hilbertVal){
-            maxRect = leaf->children[i]->r;
-        }
-    }
-    while(leftSibling!=NULL){
-        if(leftSibling->count!=ORDER){
-            leftEmpty = true;
-            break;
-        }
-        leftSibling = leftSibling->left;
-    }
-    while(rightSibling!=NULL){
-        if(rightSibling!=NULL){
-            rightEmpty = true;
-            break;
-        }
-        rightSibling = rightSibling->right;
-    }
-    if(leftEmpty){
-
-    }
-    if(rightEmpty){
-
-    }
 }
 
 void adjustTree(node* n){
@@ -152,30 +94,11 @@ void adjustTree(node* n){
     
 }
 
-void insert(node* root, rect other){
-    node* l = chooseLeaf(root, other.hilbertVal);
-    if(l->count==ORDER){
-        handleOverflow(l, other);
-    }
+void insert(node* root, spatialData * sd){
+    node* l = chooseLeaf(root, sd->hilbertValue);
+    if(l->count==ORDER)
+        handleOverflow(l, sd);
     else{
-        if(l->count==0){
-            (l->datapoints)[l->count++] = other;
-            l->r.hilbertVal = max(l->r.hilbertVal, other.hilbertVal);
-            adjustTree(l);
-        }
-        else{
-            int st = 0;
-            int en = l->count-1;
-            while(st < en){
-                int mid = st + (en - st)/2;
-                if((l->datapoints)[mid].hilbertVal<other.hilbertVal){
-                    st = mid+1;
-                }
-                else{
-                    en = mid-1;
-                }
-            }
-        }
-    }
 
+    }
 }
