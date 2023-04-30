@@ -334,6 +334,65 @@ void insertToHRT(hilbertRTree * hrt, spatialData *sd){
     // printf("----------------------\n");
 }
 
+bool equalRectangles(rect r1, rect r2){
+    for(int i = 0; i < DIMENSIONS; i++){
+        if(r1.minDim[i]!=r2.minDim[i] || r1.maxDim[i]!=r2.maxDim[i])
+            return false;
+    }
+    return true;
+}
+
+HRTNode * exactSearchNode(hilbertRTree * hrt, rect r){
+    HRTNode * root = hrt->root;
+    if(root->type==LEAFNODE){
+        for(int i = 0; i < root->count; i++){
+            if(equalRectangles(r, root->datapoints[i]->r))
+                return root;
+        }
+    }
+    else{
+        for(int i = 0; i < root->count; i++){
+            if(rectangleIntersects(r, root->children[i]->maxBoundingRect))
+                return exactSearchNode(root->children[i], r);
+        }
+    }
+    return NULL;
+}
+
+LinkedList * handleUnderflow(HRTNode* n){
+    if(n->parent==NULL){
+        if(n->count==0){
+            free(n);
+            return NULL;
+        }
+        else{
+            return createLinkedList();
+        }
+    }
+}
+
+void deleteFromHRT(hilbertRTree * hrt, rect r){
+    HRTNode * node = exactSearchNode(hrt, r);
+    if(node==NULL)
+        return;
+    
+    bool found = false;
+    for(int i = 0; i < node->count; i++){
+        if(equalRectangles(r, node->datapoints[i]->r))
+            found = true;
+        if(found){
+            if(i==node->count-1)
+                node->datapoints[i] = NULL;
+            else
+                node->datapoints[i] = node->datapoints[i+1];
+        }
+    }
+    node->count--;
+    if(node->count < UNDERFLOW)
+        handleUnderflow(node);
+
+}
+
 long long int preorderHRTNode(HRTNode *root){
     long long int out = 0;
     if (root->type == NONLEAFNODE)
@@ -359,3 +418,4 @@ void preorderHilbert(hilbertRTree * tree)
 {
     printf("\n\nTotal datapoints triversed %lld\n", preorderHRTNode(tree->root));
 }
+
