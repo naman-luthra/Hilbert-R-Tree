@@ -112,7 +112,7 @@ void recursiveHRTSearch(HRTNode * node, rect queryRect, LinkedList * result){
 /*
     * Function: searchHRT
     * -------------------------------
-    * Searches for all datapoints in a rectangle
+    * Searches for all datapoints in a rectangle and returns them as a linked list
     * hrt: hilbert r tree which is to be searched
     * queryRect: rectangle in which datapoints are to be searched
 */
@@ -242,12 +242,27 @@ LinkedList * handleOverflow(HRTNode* n, void * new){
         llInsert(Nodell,n);
     }
     else{
-        for(int i = 0; i < n->parent->count; i++){
-            llInsert(Nodell, n->parent->children[i]);
-            if(n->parent->children[i]->count!=ORDER){
-                allFull = false;
+        int pos;
+        for(int i = 0; i < n->parent->count; i++)
+            if(n->parent->children[i]==n){
+                pos = i;
+                break;
             }
+        int s = max(0,pos-SPLITTING+1), empty = 0;
+        for(int i = s; i < min(s+SPLITTING, n->parent->count); i++)
+            empty += ORDER - n->parent->children[i]->count;
+        
+        int optimalWindow = s, MaxEmpty = empty;
+        for(int e = s+SPLITTING; e < n->parent->count; e++){
+           empty += ORDER - n->parent->children[e]->count - n->parent->children[e-SPLITTING]->count;
+           if(empty > MaxEmpty){
+               MaxEmpty = empty;
+               optimalWindow = e-SPLITTING+1;
+           }
         }
+        for(int i = optimalWindow; i < min(optimalWindow+SPLITTING,n->parent->count); i++)
+            llInsert(Nodell,n->parent->children[i]);
+        if(MaxEmpty > 0) allFull = false;
     }
     if(allFull){
         HRTNode* newNode = createNewNode(n->type);
@@ -444,25 +459,25 @@ void insertToHRT(hilbertRTree * hrt, spatialData *sd){
     * n is number of nodes in the tree
     * M is maximum number of entries in a node
 */
-long long int preorderHRTNode(HRTNode *root){
-    long long int out = 0;
+long long int totalDataItems = 0, totalLeafNodes = 0;
+void preorderHRTNode(HRTNode *root){
     if (root->type == NONLEAFNODE)
     {
         printf("NONLEAFNODE: MBR bottom (%f, %f), top (%f, %f)\n", root->maxBoundingRect.minDim[0], root->maxBoundingRect.minDim[1], root->maxBoundingRect.maxDim[0], root->maxBoundingRect.maxDim[1]);
         for(int i = 0; i < root->count; i++){
-            out += preorderHRTNode(root->children[i]);
+            preorderHRTNode(root->children[i]);
         }
     }
     else
     {
+        totalLeafNodes++;
         printf("LEAFNODE: DATAITEMS ");
         for(int i = 0; i < root->count; i++){
             printf("(%f, %f), ", root->datapoints[i]->r.maxDim[0], root->datapoints[i]->r.maxDim[1]);
         }
         printf("\n");
-        out += root->count;
+        totalDataItems += root->count;
     }
-    return out;
 }
 
 /*
@@ -476,5 +491,10 @@ long long int preorderHRTNode(HRTNode *root){
 */
 void preorderHilbert(hilbertRTree * tree)
 {
-    printf("\n\nTotal datapoints triversed %lld\n", preorderHRTNode(tree->root));
+    totalDataItems = 0;
+    totalLeafNodes = 0;
+    preorderHRTNode(tree->root);
+    printf("\n\nTotal datapoints triversed %lld\n", totalDataItems);
+    printf("Total leaf nodes triversed %lld\n", totalLeafNodes);
+    printf("Utilization %f%%\n", ((float)totalDataItems*100)/(totalLeafNodes*ORDER));
 }

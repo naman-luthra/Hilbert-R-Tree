@@ -9,6 +9,7 @@
 #define INT_MIN -2147483648
 #define BUFFERSIZE 1024
 #define GRIDSIZE 1048576
+#define SPLITTING 4
 
 #define max(a, b) ((a>b?a:b))
 #define min(a, b) ((a<b?a:b))
