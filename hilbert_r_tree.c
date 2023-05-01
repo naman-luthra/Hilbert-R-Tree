@@ -1,32 +1,35 @@
 #include "hilbert_r_tree.h"
 
-void rot(long long int n, long long int *x, long long int *y, long long int rx, long long int ry) {
-    if (ry == 0) {
-        if (rx == 1) {
-            *x = n-1 - *x;
-            *y = n-1 - *y;
-        }
-        long long int t  = *x;
-        *x = *y;
-        *y = t;
+void rotate(long long int *x, long long int *y, long long int rx, long long int ry){
+    if(ry!=0) return;
+    if (rx == 1) {
+        *x = GRIDSIZE-1-*x;
+        *y = GRIDSIZE-1-*y;
     }
+    long long int t  = *x;
+    *x = *y;
+    *y = t;
 }
 
 long long int calculateHilbertValue(rect r){
-    long long int x = (r.minDim[0] + r.maxDim[0])/2;
-    long long int y = (r.minDim[1] + r.maxDim[1])/2;
-    long long int rx, ry, s, d=0;
-    for (s=GRIDSIZE/2; s>0; s/=2) {
+    long long int 
+        x = (r.minDim[0] + r.maxDim[0])/2,
+        y = (r.minDim[1] + r.maxDim[1])/2,
+        rx, 
+        ry, 
+        s=GRIDSIZE/2, 
+        hilbertValue = 0;
+    while(s>0){
         rx = (x & s) > 0;
         ry = (y & s) > 0;
-        d += s * s * ((3 * rx) ^ ry);
-        rot(GRIDSIZE, &x, &y, rx, ry);
+        hilbertValue += s*s*((3*rx)^ry);
+        rotate(&x, &y, rx, ry);
+        s /= 2;
     }
-    return d;
+    return hilbertValue;
 }
 
-HRTNode * createNewNode(int type)
-{
+HRTNode * createNewNode(int type){
     HRTNode *n = (HRTNode *) malloc(sizeof(HRTNode));
     n->type = type;
     n->count = 0;
@@ -40,15 +43,13 @@ HRTNode * createNewNode(int type)
     return n;
 }
 
-hilbertRTree *createHilbertRTree()
-{
+hilbertRTree *createHilbertRTree(){
     hilbertRTree *hrt = (hilbertRTree *) malloc(sizeof(hilbertRTree));
     hrt->root = createNewNode(LEAFNODE);
     return hrt;
 }
 
-void freeNode(HRTNode *n)
-{
+void freeNode(HRTNode *n){
     if (n->type == LEAFNODE)
     {
         free(n);
@@ -63,8 +64,7 @@ void freeNode(HRTNode *n)
     }
 }
 
-bool rectangleIntersects(rect target, rect r)
-{
+bool rectangleIntersects(rect target, rect r){
     for (int i = 0; i < DIMENSIONS; i++)
     {
         if (target.minDim[i] > r.maxDim[i] || target.maxDim[i] < r.minDim[i])
@@ -107,8 +107,7 @@ LinkedList * searchHRT(hilbertRTree *hrt, rect queryRect){
     return result;
 }
 
-HRTNode *chooseLeaf(hilbertRTree *hrt, int h)
-{
+HRTNode *chooseLeaf(hilbertRTree *hrt, int h){
     HRTNode * N = hrt->root;
     while (N->type != LEAFNODE)
     {
