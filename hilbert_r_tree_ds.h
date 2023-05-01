@@ -1,3 +1,6 @@
+#ifndef HILBERT_R_TREE_DS_H
+#define HILBERT_R_TREE_DS_H
+
 #define ORDER 4
 #define DIMENSIONS 2
 #define LEAFNODE 0
@@ -37,3 +40,5 @@ typedef struct HRTNode{
 typedef struct hilbertRTree{
     HRTNode * root;
 } hilbertRTree;
+
+#endif

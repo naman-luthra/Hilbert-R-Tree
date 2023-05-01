@@ -1,5 +1,12 @@
 #include "hilbert_r_tree.h"
 
+/*
+    * Function: calculateHilbertValue
+    * -------------------------------
+    *  Calculates the hilbert value of a rectangle
+    *  r: rectangle whose hilbert value is to be calculated
+    *  Time complexity: O(log(GRIDSIZE))
+*/
 long long int calculateHilbertValue(rect r){
     long long int 
         x = (r.minDim[0] + r.maxDim[0])/2,
@@ -26,6 +33,13 @@ long long int calculateHilbertValue(rect r){
     return hilbertValue;
 }
 
+/*
+    * Function: createNewNode
+    * -------------------------------
+    *  Creates a new node of type LEAFNODE or NONLEAFNODE
+    *  type: type of node to be created
+    *  Time complexity: O(1)
+*/
 HRTNode * createNewNode(int type){
     HRTNode *n = (HRTNode *) malloc(sizeof(HRTNode));
     n->type = type;
@@ -40,27 +54,26 @@ HRTNode * createNewNode(int type){
     return n;
 }
 
+/*
+    * Function: createHilbertRTree
+    * -------------------------------
+    *  Creates a new hilbert r tree
+    *  Time complexity: O(1)
+*/
 hilbertRTree *createHilbertRTree(){
     hilbertRTree *hrt = (hilbertRTree *) malloc(sizeof(hilbertRTree));
     hrt->root = createNewNode(LEAFNODE);
     return hrt;
 }
 
-void freeNode(HRTNode *n){
-    if (n->type == LEAFNODE)
-    {
-        free(n);
-    }
-    else
-    {
-        for (int i = 0; i < n->count; i++)
-        {
-            free(n->children[i]);
-        }
-        free(n);
-    }
-}
-
+/*
+    * Function: rectangleIntersects
+    * -------------------------------
+    * Checks if two rectangles intersect
+    * target: first rectangle
+    * r: second rectangle
+    * Time complexity: O(1)
+*/
 bool rectangleIntersects(rect target, rect r){
     for (int i = 0; i < DIMENSIONS; i++)
     {
@@ -72,6 +85,14 @@ bool rectangleIntersects(rect target, rect r){
     return true;
 }
 
+/*
+    * Function: recursiveHRTSearch
+    * -------------------------------
+    * Recursively searches for all datapoints in a rectangle
+    * node: root of HRT which is to be searched
+    * queryRect: rectangle in which datapoints are to be searched
+    * result: linked list in which results are to be stored
+*/
 void recursiveHRTSearch(HRTNode * node, rect queryRect, LinkedList * result){
     if(!rectangleIntersects(node->maxBoundingRect, queryRect))
         return;
@@ -88,7 +109,13 @@ void recursiveHRTSearch(HRTNode * node, rect queryRect, LinkedList * result){
     }
 }
 
-
+/*
+    * Function: searchHRT
+    * -------------------------------
+    * Searches for all datapoints in a rectangle
+    * hrt: hilbert r tree which is to be searched
+    * queryRect: rectangle in which datapoints are to be searched
+*/
 LinkedList * searchHRT(hilbertRTree *hrt, rect queryRect){
     LinkedList * result = createLinkedList();
     recursiveHRTSearch(hrt->root, queryRect, result);
@@ -104,6 +131,14 @@ LinkedList * searchHRT(hilbertRTree *hrt, rect queryRect){
     return result;
 }
 
+/*
+    * Function: chooseLeaf
+    * -------------------------------
+    * Chooses a leaf node in which a new datapoint is to be inserted
+    * hrt: hilbert r tree in which datapoint is to be inserted
+    * h: hilbert value of the datapoint
+    * Time complexity: O(height of tree)
+*/
 HRTNode *chooseLeaf(hilbertRTree *hrt, int h){
     HRTNode * N = hrt->root;
     while (N->type != LEAFNODE)
@@ -120,9 +155,33 @@ HRTNode *chooseLeaf(hilbertRTree *hrt, int h){
     return N;
 }
 
+/*
+    * Function: insertToHRTnode
+    * -------------------------------
+    * Inserts a new datapoint to a node
+    * n: node in which datapoint is to be inserted
+    * new: datapoint to be inserted
+    * Time complexity: O(n)
+    * n is number of entries in the node
+*/
 void insertToHRTnode(HRTNode* n, void * new){
     if(n->type==LEAFNODE){
         spatialData * newSD = new;
+        bool inserted = false;
+        int ct = n->count;
+        for(int i = 0; i < ct; i++){
+            if(!inserted && n->datapoints[i]->hilbertValue > newSD->hilbertValue){
+                spatialData * temp = n->datapoints[i];
+                n->datapoints[i] = newSD;
+                newSD = temp;
+                inserted = true;
+            }
+            else if(inserted){
+                spatialData * temp = n->datapoints[i];
+                n->datapoints[i] = newSD;
+                newSD = temp;
+            }
+        }
         n->datapoints[n->count] = newSD;
         n->count++;
         for(int i = 0; i < DIMENSIONS; i++){
@@ -136,8 +195,23 @@ void insertToHRTnode(HRTNode* n, void * new){
     }
     else{
         HRTNode * newNode = new;
-        n->children[n->count] = newNode;
         newNode->parent = n;
+        bool inserted = false;
+        int ct = n->count;
+        for(int i = 0; i < ct; i++){
+            if(!inserted && n->children[i]->maxHilbertValue > newNode->maxHilbertValue){
+                HRTNode * temp = n->children[i];
+                n->children[i] = newNode;
+                newNode = temp;
+                inserted = true;
+            }
+            else if(inserted){
+                HRTNode * temp = n->children[i];
+                n->children[i] = newNode;
+                newNode = temp;
+            }
+        }
+        n->children[n->count] = newNode;
         n->count++;
         for(int i = 0; i < DIMENSIONS; i++){
             if(newNode->maxBoundingRect.minDim[i]<n->maxBoundingRect.minDim[i])
@@ -150,12 +224,19 @@ void insertToHRTnode(HRTNode* n, void * new){
     }
 }
 
+/*
+    * Function: handleOverflow
+    * -------------------------------
+    * Handles overflow in a node
+    * n: node in which overflow is to be handled
+    * new: datapoint to be inserted
+    * Time complexity: O(n)
+    * n is number of entries in the node and its cooperating siblings
+*/
 LinkedList * handleOverflow(HRTNode* n, void * new){
-    // printf("Overflow %d children of type %d \n", n->count, n->type);
     bool allFull = true, split=false;
     LinkedList * Nodell = createLinkedList();
     if(n->parent==NULL){
-        // printf("Creating new root\n");
         HRTNode* newNode = createNewNode(NONLEAFNODE);
         insertToHRTnode(newNode,n);
         llInsert(Nodell,n);
@@ -217,7 +298,6 @@ LinkedList * handleOverflow(HRTNode* n, void * new){
             llInsert(Childrenll, newNode);
     }
 
-    // printf("Reordering %d children into %d nodes\n", Childrenll->count, Nodell->count);
     int childrenPerNode = Childrenll->count/Nodell->count;
     int extraChildren = Childrenll->count%Nodell->count;
 
@@ -243,6 +323,14 @@ LinkedList * handleOverflow(HRTNode* n, void * new){
     return Nodell;
 }
 
+/*
+    * Function: updateMBRandHV
+    * -------------------------------
+    * Recalculates and updates the max bounding rectangle and max hilbert value of a node
+    * p: node whose max bounding rectangle and max hilbert value is to be updated
+    * Time complexity: O(n)
+    * n is number of entries in the node
+*/
 void updateMBRandHV(HRTNode * p){
     for(int i = 0; i < DIMENSIONS; i++){
         p->maxBoundingRect.minDim[i] = INT_MAX;
@@ -274,6 +362,16 @@ void updateMBRandHV(HRTNode * p){
     }
 }
 
+/*
+    * Function: adjustTree
+    * -------------------------------
+    * Adjusts the tree after an insertion or deletion
+    * hrt: hilbertRTree to be adjusted
+    * affectedNodes: list of nodes affected by the insertion or deletion
+    * Time complexity: O(n + h)
+    * n is number of nodes affected by the insertion or deletion
+    * h is height of the tree
+*/
 void adjustTree(hilbertRTree * hrt, LinkedList * affectedNodes)
 {
     if(affectedNodes->count==0)
@@ -311,8 +409,18 @@ void adjustTree(hilbertRTree * hrt, LinkedList * affectedNodes)
     freeLinkedList(affectedParents);
 }
 
+/*
+    * Function: insertToHRT
+    * -------------------------------
+    * Inserts a datapoint into the hilbertRTree
+    * hrt: hilbertRTree to be inserted into
+    * sd: spatial data point to be inserted
+    * Time complexity: O(s*M + h)
+    * M is maximum number of entries in a node
+    * s is number of cooperating siblings allowed
+    * h is height of the tree
+*/
 void insertToHRT(hilbertRTree * hrt, spatialData *sd){
-    // printf("Inserting (%f, %f) with hilbert value %lld\n", sd->r.minDim[0], sd->r.minDim[1], sd->hilbertValue);
     HRTNode * l = chooseLeaf(hrt, sd->hilbertValue);
     LinkedList * affectedNodes;
     if (l->count == ORDER){
@@ -325,11 +433,17 @@ void insertToHRT(hilbertRTree * hrt, spatialData *sd){
     }
     adjustTree(hrt, affectedNodes);
     freeLinkedList(affectedNodes);
-    // printf("----------------------\n");
-    // printf("%d\n", preorderHRTNode(hrt->root));
-    // printf("----------------------\n");
 }
 
+/*
+    * Function: preorderHRTNode
+    * -------------------------------
+    * Prints the preorder of the hibleRTree rooted at a node
+    * root: root of the hilbertRTree
+    * Time complexity: O(n*M)
+    * n is number of nodes in the tree
+    * M is maximum number of entries in a node
+*/
 long long int preorderHRTNode(HRTNode *root){
     long long int out = 0;
     if (root->type == NONLEAFNODE)
@@ -351,6 +465,15 @@ long long int preorderHRTNode(HRTNode *root){
     return out;
 }
 
+/*
+    * Function: preorderHilbert
+    * -------------------------------
+    * Prints the preorder of the hibleRTree
+    * tree: hilbertRTree to be printed
+    * Time complexity: O(n*M)
+    * n is number of nodes in the tree
+    * M is maximum number of entries in a node
+*/
 void preorderHilbert(hilbertRTree * tree)
 {
     printf("\n\nTotal datapoints triversed %lld\n", preorderHRTNode(tree->root));
