@@ -1,16 +1,5 @@
 #include "hilbert_r_tree.h"
 
-void rotate(long long int *x, long long int *y, long long int rx, long long int ry){
-    if(ry!=0) return;
-    if (rx == 1) {
-        *x = GRIDSIZE-1-*x;
-        *y = GRIDSIZE-1-*y;
-    }
-    long long int t  = *x;
-    *x = *y;
-    *y = t;
-}
-
 long long int calculateHilbertValue(rect r){
     long long int 
         x = (r.minDim[0] + r.maxDim[0])/2,
@@ -23,7 +12,15 @@ long long int calculateHilbertValue(rect r){
         rx = (x & s) > 0;
         ry = (y & s) > 0;
         hilbertValue += s*s*((3*rx)^ry);
-        rotate(&x, &y, rx, ry);
+        if(ry==0){
+            if (rx == 1) {
+                x = GRIDSIZE-1-x;
+                y = GRIDSIZE-1-y;
+            }
+            long long int t  = x;
+            x = y;
+            y = t;
+        }
         s /= 2;
     }
     return hilbertValue;
