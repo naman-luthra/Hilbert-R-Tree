@@ -71,7 +71,7 @@ typedef struct spatialData{
     * ------------------
     * type: type of the node (leaf or non-leaf)
     * count: number of entries in the node
-    * maxBoundingRect: bounding rectangle of the node
+    * minBoundingRect: bounding rectangle of the node
     * parent: pointer to the parent of the node
     * maxHilbertValue: maximum hilbert value of the entries or children of the node
     * datapoints: array of pointers to the spatial data points in case of leaf node
@@ -80,7 +80,7 @@ typedef struct spatialData{
 typedef struct HRTNode{
     int type;
     int count;
-    rect maxBoundingRect;
+    rect minBoundingRect;
     struct HRTNode* parent;
     long long int maxHilbertValue;
     union
@@ -230,8 +230,8 @@ HRTNode * createNewNode(int type){
     n->maxHilbertValue = 0;
     for (int i = 0; i < DIMENSIONS; i++)
     {
-        (n->maxBoundingRect).maxDim[i] = INT_MIN;
-        (n->maxBoundingRect).minDim[i] = INT_MAX;
+        (n->minBoundingRect).maxDim[i] = INT_MIN;
+        (n->minBoundingRect).minDim[i] = INT_MAX;
     }
     return n;
 }
@@ -276,7 +276,7 @@ bool rectangleIntersects(rect target, rect r){
     * result: linked list in which results are to be stored
 */
 void recursiveHRTSearch(HRTNode * node, rect queryRect, LinkedList * result){
-    if(!rectangleIntersects(node->maxBoundingRect, queryRect))
+    if(!rectangleIntersects(node->minBoundingRect, queryRect))
         return;
 
     if(node->type == LEAFNODE){
@@ -286,7 +286,7 @@ void recursiveHRTSearch(HRTNode * node, rect queryRect, LinkedList * result){
     }
     else{
         for(int i = 0; i < node->count; i++)
-            if(rectangleIntersects(node->children[i]->maxBoundingRect, queryRect))
+            if(rectangleIntersects(node->children[i]->minBoundingRect, queryRect))
                 recursiveHRTSearch(node->children[i], queryRect, result);
     }
 }
@@ -367,10 +367,10 @@ void insertToHRTnode(HRTNode* n, void * new){
         n->datapoints[n->count] = newSD;
         n->count++;
         for(int i = 0; i < DIMENSIONS; i++){
-            if(newSD->r.minDim[i]<n->maxBoundingRect.minDim[i])
-                n->maxBoundingRect.minDim[i] = newSD->r.minDim[i];
-            if(newSD->r.maxDim[i]>n->maxBoundingRect.maxDim[i])
-                n->maxBoundingRect.maxDim[i] = newSD->r.maxDim[i];
+            if(newSD->r.minDim[i]<n->minBoundingRect.minDim[i])
+                n->minBoundingRect.minDim[i] = newSD->r.minDim[i];
+            if(newSD->r.maxDim[i]>n->minBoundingRect.maxDim[i])
+                n->minBoundingRect.maxDim[i] = newSD->r.maxDim[i];
         }
         if(newSD->hilbertValue>n->maxHilbertValue)
             n->maxHilbertValue = newSD->hilbertValue;
@@ -396,10 +396,10 @@ void insertToHRTnode(HRTNode* n, void * new){
         n->children[n->count] = newNode;
         n->count++;
         for(int i = 0; i < DIMENSIONS; i++){
-            if(newNode->maxBoundingRect.minDim[i]<n->maxBoundingRect.minDim[i])
-                n->maxBoundingRect.minDim[i] = newNode->maxBoundingRect.minDim[i];
-            if(newNode->maxBoundingRect.maxDim[i]>n->maxBoundingRect.maxDim[i])
-                n->maxBoundingRect.maxDim[i] = newNode->maxBoundingRect.maxDim[i];
+            if(newNode->minBoundingRect.minDim[i]<n->minBoundingRect.minDim[i])
+                n->minBoundingRect.minDim[i] = newNode->minBoundingRect.minDim[i];
+            if(newNode->minBoundingRect.maxDim[i]>n->minBoundingRect.maxDim[i])
+                n->minBoundingRect.maxDim[i] = newNode->minBoundingRect.maxDim[i];
         }
         if(newNode->maxHilbertValue>n->maxHilbertValue)
             n->maxHilbertValue = newNode->maxHilbertValue;
@@ -530,17 +530,17 @@ LinkedList * handleOverflow(HRTNode* n, void * new){
 */
 void updateMBRandHV(HRTNode * p){
     for(int i = 0; i < DIMENSIONS; i++){
-        p->maxBoundingRect.minDim[i] = INT_MAX;
-        p->maxBoundingRect.maxDim[i] = INT_MIN;
+        p->minBoundingRect.minDim[i] = INT_MAX;
+        p->minBoundingRect.maxDim[i] = INT_MIN;
     }
     for(int i = 0; i < p->count; i++){
         if(p->type==LEAFNODE){
             spatialData * temp = p->datapoints[i];
             for(int j = 0; j < DIMENSIONS; j++){
-                if(temp->r.minDim[j]<p->maxBoundingRect.minDim[j])
-                    p->maxBoundingRect.minDim[j] = temp->r.minDim[j];
-                if(temp->r.maxDim[j]>p->maxBoundingRect.maxDim[j])
-                    p->maxBoundingRect.maxDim[j] = temp->r.maxDim[j];
+                if(temp->r.minDim[j]<p->minBoundingRect.minDim[j])
+                    p->minBoundingRect.minDim[j] = temp->r.minDim[j];
+                if(temp->r.maxDim[j]>p->minBoundingRect.maxDim[j])
+                    p->minBoundingRect.maxDim[j] = temp->r.maxDim[j];
             }
             if(temp->hilbertValue>p->maxHilbertValue)
                 p->maxHilbertValue = temp->hilbertValue;
@@ -548,10 +548,10 @@ void updateMBRandHV(HRTNode * p){
         else{
             HRTNode * temp = p->children[i];
             for(int j = 0; j < DIMENSIONS; j++){
-                if(temp->maxBoundingRect.minDim[j]<p->maxBoundingRect.minDim[j])
-                    p->maxBoundingRect.minDim[j] = temp->maxBoundingRect.minDim[j];
-                if(temp->maxBoundingRect.maxDim[j]>p->maxBoundingRect.maxDim[j])
-                    p->maxBoundingRect.maxDim[j] = temp->maxBoundingRect.maxDim[j];
+                if(temp->minBoundingRect.minDim[j]<p->minBoundingRect.minDim[j])
+                    p->minBoundingRect.minDim[j] = temp->minBoundingRect.minDim[j];
+                if(temp->minBoundingRect.maxDim[j]>p->minBoundingRect.maxDim[j])
+                    p->minBoundingRect.maxDim[j] = temp->minBoundingRect.maxDim[j];
             }
             if(temp->maxHilbertValue>p->maxHilbertValue)
                 p->maxHilbertValue = temp->maxHilbertValue;
@@ -645,7 +645,7 @@ long long int totalDataItems = 0, totalLeafNodes = 0;
 void preorderHRTNode(HRTNode *root){
     if (root->type == NONLEAFNODE)
     {
-        printf("NONLEAFNODE: MBR bottom (%f, %f), top (%f, %f)\n", root->maxBoundingRect.minDim[0], root->maxBoundingRect.minDim[1], root->maxBoundingRect.maxDim[0], root->maxBoundingRect.maxDim[1]);
+        printf("NONLEAFNODE: MBR bottom (%f, %f), top (%f, %f)\n", root->minBoundingRect.minDim[0], root->minBoundingRect.minDim[1], root->minBoundingRect.maxDim[0], root->minBoundingRect.maxDim[1]);
         for(int i = 0; i < root->count; i++){
             preorderHRTNode(root->children[i]);
         }

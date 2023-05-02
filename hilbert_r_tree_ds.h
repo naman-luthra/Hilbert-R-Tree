@@ -28,7 +28,7 @@ typedef struct spatialData{
 typedef struct HRTNode{
     int type;
     int count;
-    rect maxBoundingRect;
+    rect minBoundingRect;
     struct HRTNode* parent;
     long long int maxHilbertValue;
     union
