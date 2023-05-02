@@ -158,9 +158,9 @@ HRTNode *chooseLeaf(hilbertRTree *hrt, int h){
 /*
     * Function: insertToHRTnode
     * -------------------------------
-    * Inserts a new datapoint to a node
-    * n: node in which datapoint is to be inserted
-    * new: datapoint to be inserted
+    * Inserts a new datapoint to a a leaf node or a node entry in a non leaf node
+    * n: node in which insertion is to be done
+    * new: datapoint or node to be inserted
     * Time complexity: O(n)
     * n is number of entries in the node
 */
@@ -229,7 +229,7 @@ void insertToHRTnode(HRTNode* n, void * new){
     * -------------------------------
     * Handles overflow in a node
     * n: node in which overflow is to be handled
-    * new: datapoint to be inserted
+    * new: datapoint or node that caused the overflow
     * Time complexity: O(n)
     * n is number of entries in the node and its cooperating siblings
 */
